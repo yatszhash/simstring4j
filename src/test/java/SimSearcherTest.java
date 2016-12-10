@@ -1,6 +1,7 @@
 import javafx.util.Pair;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -137,9 +138,39 @@ public class SimSearcherTest {
 
         setPrivateField(sut, "inverseIndices", inverseIndices);
 
-        List<String> actual = sut.overlapJoin(features, featureSize, overlapMInsize);
+        List<String> actual = sut.slowOverlapJoin(features, featureSize, overlapMInsize);
 
         assertThat(actual, is(containsInAnyOrder("abcdd")));
+    }
+
+    @Test
+    public void testNewOverLapJoin() throws IOException
+    {
+        int overlapMInsize = 3;
+        int featureSize = 4;
+        List<String> features = new ArrayList<String>() {{
+            add("ab");
+            add("bc");
+            add("cd");
+            add("de");
+            add("ef");
+            add("fg");
+            add("gh");
+            add("hi");
+        }}; //"abcdefghi"
+
+        String[] indiceWords = {"abdd", "abdzx", "abcdd", "abcdef"};
+
+        SimSearcher sut = new SimSearcher(0.7,
+                SimSearcher.COEF_FUNC_TYPE.cosine, 2);
+
+        sut.addWordsToIndices(indiceWords);
+
+        List<String> actual = sut.overlapJoin(features, featureSize,
+                overlapMInsize);
+
+        assertThat(actual, is(containsInAnyOrder("abcdd")));
+
     }
 
     public static void addToIndex(

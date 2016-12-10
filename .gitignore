@@ -1,9 +1,7 @@
 
 # IntelliJ project files
 .idea
-*.iml
 out
 gen
-/.idea/
-.idea/
 /.gradle/
+.idea/modules
