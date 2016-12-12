@@ -1,3 +1,4 @@
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import javafx.util.Pair;
 import org.junit.Test;
 
@@ -171,6 +172,27 @@ public class SimSearcherTest {
 
         assertThat(actual, is(containsInAnyOrder("abcdd")));
 
+    }
+
+    @Test
+    public void testSearch() throws IOException
+    {
+        String[] words = {"kappler", //cosSim >= 0.7
+                "banana",
+                "orange",
+                "application",
+                "pineapple" //cosSim >= 0.7
+                };
+
+        String input = "apple";
+
+        SimSearcher sut = new SimSearcher(
+                0.7, SimSearcher.COEF_FUNC_TYPE.cosine,
+                2);
+        sut.addWordsToIndices(words);
+
+        List<String> actual = sut.search(input);
+        assertThat(actual, is(containsInAnyOrder("kappler", "pineapple")));
     }
 
     public static void addToIndex(

@@ -36,29 +36,31 @@ public class SimSearcher {
         this(lowerThreshold, coefType, 3);
     }
 
-    SimSearcher(double lowerThreshold, COEF_FUNC_TYPE coefType, int ngram) {
+    SimSearcher(double lowerThreshold,
+                COEF_FUNC_TYPE coefType, int ngram) {
         this.ngram = ngram;
         this.lowerThreshold = lowerThreshold;
         this.coefType = coefType;
         this.pseudoIndices = new PseudoInverseIndices(ngram);
     }
 
-    public List<String> search(String target) throws Exception {
+    public List<String> search(String target) throws IOException {
         List<String> features = extractFeatures(target);
 
         int min_n = searchRangeMin(features);
         int max_n = searchRangeMax(features);
 
-        return IntStream.rangeClosed(min_n, max_n).parallel()
-                .mapToObj(l -> {
-                    int num = minOverlapNumFeatures(features, l);
-                    return slowOverlapJoin(features, l, num);
+        return IntStream.rangeClosed(min_n, max_n)
+                .mapToObj(f_size -> {
+                    int minOverlapNum =
+                            minOverlapNumFeatures(features, f_size);
+                    return overlapJoin(features, f_size, minOverlapNum);
                 })
                 .flatMap(List::stream).collect(Collectors.toList());
     }
 
     public int searchRangeMin(List<String> features) {
-        return (int) Math.floor(Math.pow(lowerThreshold, 2.0)
+        return (int) Math.ceil(Math.pow(lowerThreshold, 2.0)
                 * features.size());
     }
 
@@ -66,8 +68,9 @@ public class SimSearcher {
         return (int) Math.floor(features.size() / Math.pow(lowerThreshold, 2.0));
     }
 
-    public int minOverlapNumFeatures(List<String> features, int l) {
-        return (int) Math.floor((lowerThreshold * l));
+    public int minOverlapNumFeatures(List<String> features, int l)
+    {
+        return (int) Math.ceil(Math.sqrt(lowerThreshold * l));
     }
 
     public List<String> overlapJoin(List<String> features,
@@ -81,7 +84,7 @@ public class SimSearcher {
         LinkedHashMap<String, Integer> possibleWords =
                 new LinkedHashMap<>();
 
-        for (int k = 0; k < features.size() - overlapMinSize + 1; k++) {
+        for (int k = 0; k <= features.size() - overlapMinSize; k++) {
             List<String> words = indices.get(features.get(k));
             if (words == null) {
                 continue;
@@ -98,7 +101,10 @@ public class SimSearcher {
         }
 
         List<String> searchedList = new ArrayList<>();
-        for (int k = features.size() - overlapMinSize + 1;
+
+        int restFeature = features.size() - overlapMinSize + 1;
+
+        for (int k = restFeature;
              k < features.size(); k++) {
             List<String> words = indices.get(features.get(k));
             if (words == null) {
@@ -184,7 +190,7 @@ public class SimSearcher {
     }
 
     //TODO more flexible choose for feature extraction
-    public List<String> extractFeatures(String target) throws Exception {
+    public List<String> extractFeatures(String target) throws IOException {
         //TODO replace with indices' feature extraction method
         StringReader reader = new StringReader(target);
         Tokenizer tokenizer = new NGramTokenizer(this.ngram, this.ngram);
